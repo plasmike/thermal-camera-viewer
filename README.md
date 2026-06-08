@@ -204,6 +204,115 @@ For Zoom / Google Meet: select "ThermalCamera" from the camera dropdown.
 
 When you open the viewer app, it temporarily takes over the camera from the UVC driver. When you close the viewer, the UVC driver automatically resumes within 2 seconds.
 
+## Troubleshooting
+
+### `/dev/video10` doesn't appear (Linux)
+
+The viewer works but the virtual webcam is missing. Important to know: `thermal-camera-viewer-uvc` does **not** create `/dev/video10` — it only **writes** to it. The device node is created by the `v4l2loopback` kernel module, which is loaded by `/opt/thermal-camera-viewer/hotplug-add.sh` when udev sees the camera. If `/dev/video10` is missing, the failure is in the **module-load / udev** path, not in the Python driver.
+
+Run the steps below in order. The first one that fails is your problem.
+
+#### 1. Is the camera detected by USB?
+
+```bash
+lsusb -d 3474:        # P3 = 3474:45a2, P1 = 3474:45c2
+```
+
+Expect a line for your model. If empty, it's a USB / cable / hub issue.
+
+#### 2. Can `v4l2loopback` load on this kernel?
+
+```bash
+dkms status | grep v4l2loopback
+sudo modprobe -v v4l2loopback devices=1 video_nr=10 card_label=ThermalCamera exclusive_caps=1
+ls -l /dev/video10
+dmesg | tail -30      # look for "v4l2loopback", "key was rejected", "module verification failed"
+```
+
+Expect `dkms status` to show `installed` for the running kernel and `modprobe` to succeed silently. Common failures:
+
+- **DKMS build failed for the running kernel** (very common on 6.5+ kernels with Ubuntu 22.04's older `v4l2loopback-dkms` 0.12.5):
+  ```bash
+  sudo apt install --reinstall v4l2loopback-dkms linux-headers-$(uname -r)
+  sudo dkms autoinstall
+  sudo modprobe v4l2loopback devices=1 video_nr=10 card_label=ThermalCamera exclusive_caps=1
+  ```
+- **Distro package too old for the kernel** — install upstream from source:
+  ```bash
+  sudo apt install dkms linux-headers-$(uname -r) git build-essential
+  git clone https://github.com/umlaeute/v4l2loopback.git
+  cd v4l2loopback && sudo make && sudo make install && sudo depmod -a
+  sudo modprobe v4l2loopback devices=1 video_nr=10 card_label=ThermalCamera exclusive_caps=1
+  ```
+
+#### 3. Is Secure Boot blocking the unsigned DKMS module?
+
+```bash
+mokutil --sb-state
+```
+
+If it says `SecureBoot enabled` and step 2 errors with `key was rejected by service` or `module verification failed`, either disable Secure Boot in BIOS, or enroll the DKMS MOK key:
+
+```bash
+sudo mokutil --import /var/lib/dkms/mok.pub
+# reboot, complete enrollment in the MOK manager, then retry step 2
+```
+
+#### 4. Did udev fire when the camera was plugged in?
+
+```bash
+sudo udevadm monitor --udev --subsystem-match=usb
+# unplug and replug the camera; you should see ATTR{idProduct}=="45a2" or "45c2"
+# Ctrl-C when done
+```
+
+If no event appears, reload the rules:
+
+```bash
+sudo udevadm control --reload-rules && sudo udevadm trigger
+```
+
+#### 5. Is the watcher running for your user?
+
+```bash
+pgrep -af thermal-camera-viewer-uvc-watch
+```
+
+Expect at least one process for your UID. If empty, `loginctl list-users` likely didn't see your session at plug time. Workaround until next login:
+
+```bash
+thermal-camera-viewer-uvc-watch &
+```
+
+#### 6. Run the hotplug handler manually
+
+This is exactly what udev runs as root on plug-in:
+
+```bash
+sudo /opt/thermal-camera-viewer/hotplug-add.sh
+ls -l /dev/video10
+```
+
+If `/dev/video10` exists now, the missing piece was udev (step 4) or the watcher (step 5).
+
+#### 7. Stream a real frame to confirm end-to-end
+
+Only meaningful **after** `/dev/video10` exists:
+
+```bash
+thermal-camera-viewer-uvc --model=p1   # or --model=p3
+# in another terminal:
+ffplay /dev/video10
+```
+
+If steps 1–6 all pass and step 7 still shows nothing, capture full logs and open an issue:
+
+```bash
+dmesg | tail -100 > /tmp/tcv-dmesg.log
+journalctl -t systemd-udevd -n 200 > /tmp/tcv-udev.log
+thermal-camera-viewer-uvc --model=p1 2>&1 | tee /tmp/tcv-uvc.log
+```
+
 ## Architecture
 
 The Qt viewer (`viewer.py`) runs on **Linux, macOS, and Windows** (PyUSB + libusb). The **virtual webcam** path (`uvc_driver.py` → v4l2loopback) is **Linux-only**.
