@@ -45,7 +45,7 @@ These are commonly sold as "Thermal Master P3", "InfiRay P2 Pro", and similar US
 
 #### Prerequisites
 
-Ubuntu 22.04+ or Debian 12+ (x86_64). The `.deb` package declares all dependencies; `apt` will install any missing ones.
+Ubuntu 22.04+ or Debian 12+ on x86_64 or arm64 (including Raspberry Pi OS Bookworm/Trixie). The `.deb` package declares all dependencies; `apt` will install any missing ones.
 
 #### Build & Install
 

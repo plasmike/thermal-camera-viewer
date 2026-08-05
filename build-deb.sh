@@ -3,7 +3,7 @@ set -e
 
 APP_NAME="thermal-camera-viewer"
 VERSION="3.3.0"
-ARCH="amd64"
+ARCH=$(dpkg --print-architecture)
 PKG_DIR="${APP_NAME}_${VERSION}_${ARCH}"
 INSTALL_PREFIX="/opt/${APP_NAME}"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -83,7 +83,7 @@ cat > "${PKG_DIR}/usr/bin/${APP_NAME}-uvc-watch" << 'WATCHER'
 # Runs UVC driver in BACKGROUND, polls camera presence every 2s.
 # On camera removal: kills driver, unloads v4l2loopback, exits.
 USB_VID="3474"
-USB_PID="45a2"
+USB_PID="45[ac]2"  # matches P1 (45c2) and P3 (45a2)
 UVC_PID=""
 
 camera_present() {
@@ -165,10 +165,15 @@ if ! lsmod | grep -q v4l2loopback; then
     sleep 0.5
     chmod 0666 /dev/video10 2>/dev/null
 fi
-# Start UVC watcher for each logged-in user (as user, not root)
-for uid in $(loginctl list-users --no-legend 2>/dev/null | awk '{print $1}'); do
-    user=$(id -nu "$uid" 2>/dev/null) || continue
-    if ! pgrep -u "$uid" -f "thermal-camera-viewer-uvc-watch" >/dev/null 2>&1; then
+# Start UVC watcher for each real local user (as user, not root).
+# Note: we deliberately don't use `loginctl list-users` here — on a
+# headless box that list is empty until someone has actually logged in
+# (e.g. via SSH), so on a fresh boot with a camera already plugged in,
+# udev would fire this rule with zero eligible users and the watcher
+# would never start. Iterating /etc/passwd for real (non-system) users
+# works regardless of whether anyone is logged in.
+for user in $(awk -F: '$3 >= 1000 && $3 < 60000 {print $1}' /etc/passwd); do
+    if ! pgrep -u "$user" -f "thermal-camera-viewer-uvc-watch" >/dev/null 2>&1; then
         su - "$user" -c 'setsid thermal-camera-viewer-uvc-watch </dev/null >/dev/null 2>&1 &' 2>/dev/null
     fi
 done
