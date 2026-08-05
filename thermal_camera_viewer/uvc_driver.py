@@ -136,7 +136,7 @@ class V4L2Writer:
 # ── device discovery ─────────────────────────────────────────────────────────
 
 def find_v4l2_loopback_device() -> str | None:
-    for dev in sorted(glob.glob("/sys/devices/virtual/video4linux/video*")):
+    for dev in sorted(glob.glob("/sys/class/video4linux/video*")):
         name_file = os.path.join(dev, "name")
         try:
             with open(name_file) as f:
