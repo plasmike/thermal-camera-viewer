@@ -3,7 +3,7 @@ set -e
 
 APP_NAME="thermal-camera-viewer"
 VERSION="3.3.0"
-ARCH="amd64"
+ARCH=$(dpkg --print-architecture)
 PKG_DIR="${APP_NAME}_${VERSION}_${ARCH}"
 INSTALL_PREFIX="/opt/${APP_NAME}"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
