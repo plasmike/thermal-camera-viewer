@@ -83,7 +83,7 @@ cat > "${PKG_DIR}/usr/bin/${APP_NAME}-uvc-watch" << 'WATCHER'
 # Runs UVC driver in BACKGROUND, polls camera presence every 2s.
 # On camera removal: kills driver, unloads v4l2loopback, exits.
 USB_VID="3474"
-USB_PID="45a2"
+USB_PID="45[ac]2"  # matches P1 (45c2) and P3 (45a2)
 UVC_PID=""
 
 camera_present() {
