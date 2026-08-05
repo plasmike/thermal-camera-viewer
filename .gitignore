@@ -1,8 +1,7 @@
 # Build outputs
 dist/
 *.deb
-thermal-camera-viewer_*_amd64/
-thermal-camera-viewer_*_amd64.deb
+thermal-camera-viewer_*_*/
 
 # Python
 __pycache__/
