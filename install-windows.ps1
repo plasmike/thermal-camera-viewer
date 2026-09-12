@@ -4,8 +4,8 @@
   Install Python dependencies for Thermal Camera Viewer on Windows (venv).
 
 .DESCRIPTION
-  Creates .venv in the repo root, installs PyQt5 / OpenCV / PyUSB and
-  libusb-package (bundled libusb-1.0 DLLs for PyUSB on Windows).
+  Creates .venv in the repo root, installs PyQt5 / OpenCV / PyUSB,
+  libusb-package (bundled libusb-1.0 DLLs for PyUSB on Windows) and pyinstaller.
 
   USB: you must still assign WinUSB to the camera with Zadig (VID 3474).
   See README.md -> Installation -> Windows.
