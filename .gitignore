@@ -3,6 +3,7 @@ dist/
 *.deb
 thermal-camera-viewer_*_*/
 build/
+*.spec
 
 # Python
 __pycache__/
