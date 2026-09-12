@@ -28,7 +28,7 @@ if (-not (Test-Path $VenvDir)) {
 $Py = Join-Path $VenvDir "Scripts\python.exe"
 $Pip = Join-Path $VenvDir "Scripts\pip.exe"
 & $Py -m pip install -U pip setuptools wheel
-& $Pip install libusb-package numpy opencv-python-headless pyusb PyQt5
+& $Pip install libusb-package numpy opencv-python-headless pyusb PyQt5 pyinstaller
 
 Write-Host ""
 Write-Host "=== Done ===" -ForegroundColor Green
