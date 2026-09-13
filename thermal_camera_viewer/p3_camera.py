@@ -1059,7 +1059,7 @@ class P3Camera:
         return "".join(result).strip()
 
     def _detach_kernel_drivers(self) -> None:
-        """Detach kernel drivers from USB interfaces (Linux only; no-op on Windows/macOS)."""
+        """Detach kernel drivers from USB interfaces (skipped on Windows/WinUSB)."""
         if self.dev is None:
             return
         if sys.platform == "win32":
