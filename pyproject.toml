@@ -16,11 +16,7 @@ dependencies = [
     "opencv-python-headless>=4.8",
     "pyusb>=1.2",
     "PyQt5>=5.15",
-]
-
-[project.optional-dependencies]
-windows = [
-    "libusb-package>=1.0.26",
+    "libusb-package>=1.0.26; sys_platform == 'win32'",
 ]
 
 [project.urls]

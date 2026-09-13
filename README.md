@@ -512,7 +512,7 @@ bash build-deb.sh
 bash build-macos.sh
 ```
 
-There is no bundled `.exe` installer yet; on Windows use `install-windows.ps1` or `pip install -e ".[windows]"` from a checkout.
+There is no bundled `.exe` installer yet; on Windows use `install-windows.ps1` or `pip install -e .` from a checkout (`libusb-package` is pulled in automatically on Windows).
 
 ## Acknowledgments
 
