@@ -32,6 +32,7 @@ import time
 import numpy as np
 import usb.core
 import usb.util
+import libusb_package
 
 
 if TYPE_CHECKING:
@@ -108,7 +109,7 @@ class ModelConfig:
     def frame_read_size(self) -> int:
         """Full frame data read size from USB in bytes (including markers)."""
         return self.frame_size + 2 * MARKER_SIZE
-    
+
     @property
     def frame_buffer_size(self) -> int:
         """Frame buffer size ."""
@@ -631,7 +632,7 @@ class P3Camera:
     def connect(self) -> None:
         """Connect to the camera."""
 
-        self.dev = usb.core.find(idVendor=VID, idProduct=self.config.pid)
+        self.dev = libusb_package.find(idVendor=VID, idProduct=self.config.pid)
         if self.dev is None:
             model_name = self.config.model.value.upper()
             raise RuntimeError(
