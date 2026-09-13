@@ -934,21 +934,29 @@ class MainWindow(QMainWindow):
             self._video_file = os.path.join(d, f"thermal_camera_{ts}.mp4")
             pw, ph = self._thermal_w._proc_w, self._thermal_w._proc_h
             if pw > 0 and ph > 0:
-                self._ffmpeg_proc = subprocess.Popen(
-                    [
-                        "ffmpeg", "-y", "-loglevel", "error",
-                        "-f", "rawvideo", "-vcodec", "rawvideo",
-                        "-pix_fmt", "bgr24",
-                        "-s", f"{pw}x{ph}", "-r", "25",
-                        "-i", "pipe:0",
-                        "-c:v", "libx264", "-preset", "fast", "-crf", "23",
-                        "-pix_fmt", "yuv420p",
-                        self._video_file,
-                    ],
-                    stdin=subprocess.PIPE,
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.PIPE,
-                )
+                try:
+                    self._ffmpeg_proc = subprocess.Popen(
+                        [
+                            "ffmpeg", "-y", "-loglevel", "error",
+                            "-f", "rawvideo", "-vcodec", "rawvideo",
+                            "-pix_fmt", "bgr24",
+                            "-s", f"{pw}x{ph}", "-r", "25",
+                            "-i", "pipe:0",
+                            "-c:v", "libx264", "-preset", "fast", "-crf", "23",
+                            "-pix_fmt", "yuv420p",
+                            self._video_file,
+                        ],
+                        stdin=subprocess.PIPE,
+                        stdout=subprocess.DEVNULL,
+                        # Nothing reads stderr; a PIPE could fill and stall writes.
+                        stderr=subprocess.DEVNULL,
+                    )
+                except FileNotFoundError:
+                    QMessageBox.warning(
+                        self, "Recording unavailable",
+                        "Recording requires ffmpeg, but it was not found on PATH.",
+                    )
+                    return
                 self._recording = True
                 self._act_rec.setIcon(icon_stop_rec())
                 self._act_rec.setToolTip("Stop recording  [F5]")
