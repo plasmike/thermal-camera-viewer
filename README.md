@@ -272,15 +272,16 @@ If no event appears, reload the rules:
 sudo udevadm control --reload-rules && sudo udevadm trigger
 ```
 
-#### 5. Is the watcher running for your user?
+#### 5. Is the watcher running?
 
 ```bash
-pgrep -af thermal-camera-viewer-uvc-watch
+ps -eo user=,pid=,args= | grep '[t]hermal-camera-viewer-uvc-watch'
 ```
 
-Expect at least one process for your UID. If empty, `loginctl list-users` likely didn't see your session at plug time. Workaround until next login:
+Expect exactly one process. On plug-in, `hotplug-add.sh` starts a single watcher: for the first regular user (UID 1000+) with a login session, or — if nobody is logged in, e.g. a headless box at boot — for the first regular local user with a login shell. If it's running under a different account than the one you want, or nothing is running, stop it and start it as yourself:
 
 ```bash
+sudo pkill -f thermal-camera-viewer-uvc-watch
 thermal-camera-viewer-uvc-watch &
 ```
 
