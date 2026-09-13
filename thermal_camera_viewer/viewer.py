@@ -19,7 +19,8 @@ import numpy as np
 from numpy.typing import NDArray
 
 from PyQt5.QtCore import (
-    QPoint, QPointF, QRect, QRectF, QSize, Qt, QThread, QTimer, pyqtSignal,
+    QPoint, QPointF, QRect, QRectF, QSize, QStandardPaths, Qt, QThread, QTimer,
+    pyqtSignal,
 )
 from PyQt5.QtGui import (
     QBrush, QColor, QCursor, QFont, QFontMetrics, QIcon, QImage,
@@ -903,17 +904,15 @@ class MainWindow(QMainWindow):
 
 
     @staticmethod
-    def _xdg_dir(xdg_var: str, fallback: str) -> str:
+    def _xdg_dir(xdg_var: str, qt_location: QStandardPaths.StandardLocation,
+                 fallback: str) -> str:
         if sys.platform == "win32":
-            base = os.environ.get("USERPROFILE", os.path.expanduser("~"))
-            if "PICTURE" in xdg_var.upper():
-                d = os.path.join(base, "Pictures")
-            else:
-                d = os.path.join(base, "Videos")
+            # Honours Known Folder redirection (e.g. OneDrive-backed Pictures).
+            d = QStandardPaths.writableLocation(qt_location)
         else:
             d = os.environ.get(xdg_var, "")
-            if not d:
-                d = os.path.join(os.path.expanduser("~"), fallback)
+        if not d:
+            d = os.path.join(os.path.expanduser("~"), fallback)
         os.makedirs(d, exist_ok=True)
         return d
 
@@ -922,7 +921,7 @@ class MainWindow(QMainWindow):
         if bgr is None:
             return
         ts = time.strftime("%Y%m%d_%H%M%S")
-        d = self._xdg_dir("XDG_PICTURES_DIR", "Pictures")
+        d = self._xdg_dir("XDG_PICTURES_DIR", QStandardPaths.PicturesLocation, "Pictures")
         fn = os.path.join(d, f"thermal_camera_{ts}.png")
         cv2.imwrite(fn, bgr)
         self.statusBar().showMessage(f"Saved: {fn}", 3000)
@@ -930,25 +929,33 @@ class MainWindow(QMainWindow):
     def _on_record(self):
         if not self._recording:
             ts = time.strftime("%Y%m%d_%H%M%S")
-            d = self._xdg_dir("XDG_VIDEOS_DIR", "Videos")
+            d = self._xdg_dir("XDG_VIDEOS_DIR", QStandardPaths.MoviesLocation, "Videos")
             self._video_file = os.path.join(d, f"thermal_camera_{ts}.mp4")
             pw, ph = self._thermal_w._proc_w, self._thermal_w._proc_h
             if pw > 0 and ph > 0:
-                self._ffmpeg_proc = subprocess.Popen(
-                    [
-                        "ffmpeg", "-y", "-loglevel", "error",
-                        "-f", "rawvideo", "-vcodec", "rawvideo",
-                        "-pix_fmt", "bgr24",
-                        "-s", f"{pw}x{ph}", "-r", "25",
-                        "-i", "pipe:0",
-                        "-c:v", "libx264", "-preset", "fast", "-crf", "23",
-                        "-pix_fmt", "yuv420p",
-                        self._video_file,
-                    ],
-                    stdin=subprocess.PIPE,
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.PIPE,
-                )
+                try:
+                    self._ffmpeg_proc = subprocess.Popen(
+                        [
+                            "ffmpeg", "-y", "-loglevel", "error",
+                            "-f", "rawvideo", "-vcodec", "rawvideo",
+                            "-pix_fmt", "bgr24",
+                            "-s", f"{pw}x{ph}", "-r", "25",
+                            "-i", "pipe:0",
+                            "-c:v", "libx264", "-preset", "fast", "-crf", "23",
+                            "-pix_fmt", "yuv420p",
+                            self._video_file,
+                        ],
+                        stdin=subprocess.PIPE,
+                        stdout=subprocess.DEVNULL,
+                        # Nothing reads stderr; a PIPE could fill and stall writes.
+                        stderr=subprocess.DEVNULL,
+                    )
+                except FileNotFoundError:
+                    QMessageBox.warning(
+                        self, "Recording unavailable",
+                        "Recording requires ffmpeg, but it was not found on PATH.",
+                    )
+                    return
                 self._recording = True
                 self._act_rec.setIcon(icon_stop_rec())
                 self._act_rec.setToolTip("Stop recording  [F5]")

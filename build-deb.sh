@@ -165,18 +165,24 @@ if ! lsmod | grep -q v4l2loopback; then
     sleep 0.5
     chmod 0666 /dev/video10 2>/dev/null
 fi
-# Start UVC watcher for each real local user (as user, not root).
-# Note: we deliberately don't use `loginctl list-users` here — on a
-# headless box that list is empty until someone has actually logged in
-# (e.g. via SSH), so on a fresh boot with a camera already plugged in,
-# udev would fire this rule with zero eligible users and the watcher
-# would never start. Iterating /etc/passwd for real (non-system) users
-# works regardless of whether anyone is logged in.
-for user in $(awk -F: '$3 >= 1000 && $3 < 60000 {print $1}' /etc/passwd); do
-    if ! pgrep -u "$user" -f "thermal-camera-viewer-uvc-watch" >/dev/null 2>&1; then
+# Start a single UVC watcher (as a regular user, not root). Only one may
+# run system-wide: each watcher drives the camera and /dev/video10, so a
+# second copy under another account would fight the first.
+# Prefer a user with a login session. On a headless box nobody may be
+# logged in at boot (`loginctl list-users` is empty until e.g. an SSH
+# login), so fall back to the first regular local user with a login shell.
+if ! pgrep -f "thermal-camera-viewer-uvc-watch" >/dev/null 2>&1; then
+    user=$(
+        {
+            loginctl list-users --no-legend 2>/dev/null |
+                awk '$1 >= 1000 && $1 < 60000 {print $2}'
+            awk -F: '$3 >= 1000 && $3 < 60000 && $7 !~ /(nologin|false)$/ {print $1}' /etc/passwd
+        } | head -n 1
+    )
+    if [ -n "$user" ]; then
         su - "$user" -c 'setsid thermal-camera-viewer-uvc-watch </dev/null >/dev/null 2>&1 &' 2>/dev/null
     fi
-done
+fi
 HOTPLUG_ADD
 chmod 755 "${PKG_DIR}${INSTALL_PREFIX}/hotplug-add.sh"
 

@@ -219,8 +219,8 @@ def run_uvc(
     out_w: int = 640,
     out_h: int = 480,
 ) -> None:
-    if sys.platform == "win32" or fcntl is None:
-        raise RuntimeError("UVC virtual webcam requires Linux (v4l2loopback + fcntl).")
+    if sys.platform != "linux":
+        raise RuntimeError("UVC virtual webcam requires Linux (v4l2loopback).")
     cmap_map = {n.lower(): v for n, v in ColormapID.__members__.items()}
     cmap_id = cmap_map.get(colormap.lower(), ColormapID.RAINBOW)
 
@@ -356,10 +356,10 @@ def run_uvc(
 
 
 def main():
-    if sys.platform == "win32":
+    if sys.platform != "linux":
         print(
             "thermal-camera-viewer-uvc: virtual webcam is Linux-only (v4l2loopback).\n"
-            "On Windows, use the desktop viewer:  python -m thermal_camera_viewer",
+            "Use the desktop viewer instead:  python -m thermal_camera_viewer",
             file=sys.stderr,
         )
         raise SystemExit(2)

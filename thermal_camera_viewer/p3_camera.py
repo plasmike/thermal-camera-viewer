@@ -32,7 +32,12 @@ import time
 import numpy as np
 import usb.core
 import usb.util
-import libusb_package
+
+try:
+    # Bundles libusb-1.0 for PyUSB; needed on Windows, optional elsewhere.
+    import libusb_package
+except ImportError:
+    libusb_package = None  # type: ignore[assignment]
 
 
 if TYPE_CHECKING:
@@ -632,7 +637,8 @@ class P3Camera:
     def connect(self) -> None:
         """Connect to the camera."""
 
-        self.dev = libusb_package.find(idVendor=VID, idProduct=self.config.pid)
+        find = libusb_package.find if libusb_package is not None else usb.core.find
+        self.dev = find(idVendor=VID, idProduct=self.config.pid)
         if self.dev is None:
             model_name = self.config.model.value.upper()
             raise RuntimeError(
@@ -1053,7 +1059,7 @@ class P3Camera:
         return "".join(result).strip()
 
     def _detach_kernel_drivers(self) -> None:
-        """Detach kernel drivers from USB interfaces (Linux only; no-op on Windows/macOS)."""
+        """Detach kernel drivers from USB interfaces (skipped on Windows/WinUSB)."""
         if self.dev is None:
             return
         if sys.platform == "win32":

@@ -125,7 +125,7 @@ Set-ExecutionPolicy -Scope CurrentUser RemoteSigned -Force   # if scripts are bl
 .\.venv\Scripts\python.exe -m thermal_camera_viewer
 ```
 
-The script creates a project-local `.venv` and installs `PyQt5`, `numpy`, `opencv-python-headless`, `pyusb`, and **`libusb-package`** (ships `libusb-1.0` DLLs used by PyUSB on Windows).
+The script checks for Python 3.10+, creates a project-local `.venv`, and installs this package in editable mode with its dependencies: `PyQt5`, `numpy`, `opencv-python-headless`, `pyusb`, and **`libusb-package`** (ships `libusb-1.0` DLLs used by PyUSB on Windows). It stops with an error if any step fails.
 
 #### Portable / manual pip
 
@@ -154,7 +154,7 @@ On macOS, open "Thermal Camera Viewer" from the Applications folder or Launchpad
 
 On Windows, run `python -m thermal_camera_viewer` from the activated `.venv` (see above), or use `py -3.12 -m thermal_camera_viewer` if you installed dependencies globally.
 
-Screenshots and recordings go to **Pictures** and **Videos** under your user profile (`%USERPROFILE%`).
+Screenshots and recordings go to your Windows **Pictures** and **Videos** folders (usually under `%USERPROFILE%`, or wherever they have been redirected, e.g. OneDrive).
 
 #### Keyboard Shortcuts
 
@@ -272,15 +272,16 @@ If no event appears, reload the rules:
 sudo udevadm control --reload-rules && sudo udevadm trigger
 ```
 
-#### 5. Is the watcher running for your user?
+#### 5. Is the watcher running?
 
 ```bash
-pgrep -af thermal-camera-viewer-uvc-watch
+ps -eo user=,pid=,args= | grep '[t]hermal-camera-viewer-uvc-watch'
 ```
 
-Expect at least one process for your UID. If empty, `loginctl list-users` likely didn't see your session at plug time. Workaround until next login:
+Expect exactly one process. On plug-in, `hotplug-add.sh` starts a single watcher: for the first regular user (UID 1000+) with a login session, or — if nobody is logged in, e.g. a headless box at boot — for the first regular local user with a login shell. If it's running under a different account than the one you want, or nothing is running, stop it and start it as yourself:
 
 ```bash
+sudo pkill -f thermal-camera-viewer-uvc-watch
 thermal-camera-viewer-uvc-watch &
 ```
 
@@ -512,7 +513,7 @@ bash build-deb.sh
 bash build-macos.sh
 ```
 
-There is no bundled `.exe` installer yet; on Windows use `install-windows.ps1` or `pip install -e ".[windows]"` from a checkout.
+There is no bundled `.exe` installer yet; on Windows use `install-windows.ps1` or `pip install -e .` from a checkout (`libusb-package` is pulled in automatically on Windows).
 
 ## Acknowledgments
 
