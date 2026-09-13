@@ -154,7 +154,7 @@ On macOS, open "Thermal Camera Viewer" from the Applications folder or Launchpad
 
 On Windows, run `python -m thermal_camera_viewer` from the activated `.venv` (see above), or use `py -3.12 -m thermal_camera_viewer` if you installed dependencies globally.
 
-Screenshots and recordings go to **Pictures** and **Videos** under your user profile (`%USERPROFILE%`).
+Screenshots and recordings go to your Windows **Pictures** and **Videos** folders (usually under `%USERPROFILE%`, or wherever they have been redirected, e.g. OneDrive).
 
 #### Keyboard Shortcuts
 
