@@ -1,4 +1,5 @@
 # Build outputs
+build
 dist/
 *.deb
 thermal-camera-viewer_*_*/
